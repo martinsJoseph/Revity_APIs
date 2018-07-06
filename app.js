@@ -1,0 +1,90 @@
+var createError = require('http-errors');
+var express = require('express');
+var path = require('path');
+var cookieParser = require('cookie-parser');
+var logger = require('morgan');
+var bodyParser = require('body-parser');
+var mysql = require("mysql");
+
+var accountRouter = require('./routes/account');
+var teamRouter = require('./routes/teams');
+var projectRouter = require('./routes/project');
+var taskRouter = require('./routes/task');
+var chatRouter = require('./routes/chat');
+
+var app = express();
+var io = require('socket.io').listen(app.listen(5000));
+
+app.use(logger('dev'));
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+app.set('json spaces', 5);
+
+//set express variable for socket connections
+io.sockets.on('connection', function (socket) {
+    console.log('client connect');
+    socket.on('echo', function (data) {
+        io.sockets.emit('message', data);
+    });
+});
+
+// Make io accessible to our router
+app.use(function(req,res,next){
+    req.io = io;
+    next();
+});
+
+app.use(function (req, res, next){
+
+	try{
+		res.locals.connection = mysql.createConnection({
+			host     : 'localhost',
+			user     : 'root',
+			password : '',
+			database : 'Revity',
+			multipleStatements: true
+		});
+		res.locals.connection.connect();
+		next();
+	}
+	catch (err) {
+		res.json({res: false, message: "error_api", reason: "SQL server error"});
+	}
+});
+
+//CORS Handlers
+app.use(function (req, res, next) {
+res.setHeader('Access-Control-Allow-Origin', '*');
+res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+res.setHeader('Access-Control-Allow-Credentials', true);
+res.locals.key = 'DJJJJJ:@D@MKdni2j9rd02q;sd@KD(@$D:efc/o/@(ue92E@D:@FD"@QDF@"ED(UD@D(J@DRcvrhwj@ue2e09d209edajdxwijadcdscisc'
+next();
+});
+
+app.use('/account', accountRouter);
+app.use('/team', teamRouter);
+app.use('/project', projectRouter);
+app.use('/task', taskRouter);
+app.use('/chat', chatRouter);
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  res.json({res: false, message: "invalid_api", reason: "Endpoint not found"});
+});
+
+// error handler
+app.use(function(err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+  // render the error page
+  res.status(err.status || 500);
+  console.log(err)
+  res.json({res: false, message: "error_api", reason: "API server experienced an error"});
+});
+
+module.exports = app;
