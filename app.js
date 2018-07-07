@@ -13,7 +13,7 @@ var taskRouter = require('./routes/task');
 var chatRouter = require('./routes/chat');
 
 var app = express();
-var io = require('socket.io').listen(app.listen(5000));
+var io = require('socket.io').listen(app.listen(7000));
 
 app.use(logger('dev'));
 app.use(express.json());
