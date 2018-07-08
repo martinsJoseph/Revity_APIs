@@ -22,15 +22,27 @@ function analyze_message_data(messages, res_obj) {
 }
 
 
-// io('connection', function(socket){
-//   console.log('a user connected');
-// });
-// console.log(io);
+function analyze_user(user_details, result, res, token_decoded) {
+	// body...
+	var users_messaged = [];//this array holds user's that the current logged user has messaged before
+	for (var i = user_details.length - 1; i >= 0; i--) {
 
-// var encrypted_msg = $encryption.encrypt("ello");
-// console.log(encrypted_msg);
-// console.log($encryption.encrypt("ello"));
-// console.log($encryption.decrypt(encrypted_msg));
+		if (user_details[i].id != token_decoded.id_) {
+			console.log(user_details[i]);
+			// console.log(result[i]);
+			console.log(result[i][0]['COUNT(*)'])
+			user_details[i].count = result[i][0]['COUNT(*)'];
+			console.log(user_details[i])
+
+			users_messaged.push(user_details[i])
+
+		}
+
+	}
+	res.json({res: true, message: "true", data: users_messaged, reason: "Data Found"})
+}
+
+
 
 /* fetch chat. */
 router.get('/:team/:token/:page', function(req, res, next) {
@@ -309,4 +321,62 @@ router.delete('/:token', function(req, res, next) {
 	}
 
 });
+
+
+/* get list of users in a team. */
+router.get('/:token', function(req, res, next) {
+
+	var token_decoded = $jwt.verify(req.params.token, res.locals.key);//get all details of current logged user
+
+	if (token_decoded == false) res.json({res: false, message: 'invalid_token', reason: 'Invalid token'});	
+
+	else {
+
+					/*------------list of all form data needed on for this api to work------------*/
+
+				    res.locals.connection.query("SELECT msg.is_seen, user.id, user.fullname, user.email FROM Messages AS msg INNER JOIN User as user ON (msg.sender_id=user.id OR msg.receiver_id=user.id) WHERE is_Team = ? AND sender_id = ? AND parent_company = ? OR is_Team = ? AND receiver_id = ? AND parent_company = ? GROUP BY user.fullname", [0, token_decoded.id_, token_decoded.company, 0, token_decoded.id_, token_decoded.company], function (err, result, fields) {
+
+				    	  var user_details;
+
+					      if (err) {console.log(err); res.json({ res: false, message: "error", reason: err.message });}
+
+					      else if (result.length > 0) {
+
+					      	var sql_statement_for_users = "";
+					      	var user_details = result;
+
+					      	for (var i = 0; i < result.length; i++) {
+
+					      		// console.log(result[i])
+					      		sql_statement_for_users += "SELECT COUNT(*) FROM Messages WHERE sender_id = '"+result[i].id+"' OR receiver_id = '"+result[i].id+"' AND is_seen != 'seen' AND is_Team = 0; ";
+
+					      	}
+
+					      	res.locals.connection.query(sql_statement_for_users, function(err, result, fields){
+
+								if (err) {console.log(err); res.json({ res: false, message: "error", reason: err.message });}
+
+								else if (result.length > 0) {
+									// console.log(result)
+									// console.log("\n\n")
+									analyze_user(user_details, result, res, token_decoded);
+								}
+
+					      	})
+
+
+					      }
+
+					      else{
+
+							  res.json({ res: true, message: 'empty', reason: 'No message found' });
+
+						  }
+					});
+
+			}
+    
+
+});
+
 module.exports = router;
