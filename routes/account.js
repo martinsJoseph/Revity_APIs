@@ -69,7 +69,7 @@ router.post('/create/admin', function(req, res, next) {
 
 			  res.locals.connection.query(("SELECT * FROM User WHERE email = ? OR company = ?"), [email, company], function (err, result, fields) {
 
-			    if (err) res.json({ res: false, message: "error", reason: "SQL error" });
+			    if (err) res.json({ res: false, message: "error", reason: err });
 
 			    /*If: email exist*/
 			    else if(result.length > 0) {
