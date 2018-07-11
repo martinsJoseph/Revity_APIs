@@ -88,8 +88,8 @@ router.post('/create/admin', function(req, res, next) {
 
 						var today = new Date();//generate date of registeration
 						//prepare sql statement
-						var sql = " INSERT INTO User (fullname, email, password, company, role) VALUES (?) "
-						var values = [(firstname+" "+lastname), email, hash, company, 'admin' ]
+						var sql = " INSERT INTO User (fullname, email, password, company, role, otp, account_activated) VALUES (?) "
+						var values = [(firstname+" "+lastname), email, hash, company, 'admin', (generate_otp()), false]
 
 						//insert into db
 						res.locals.connection.query(sql, [values] , function (err, result) {
