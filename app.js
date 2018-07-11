@@ -44,10 +44,10 @@ app.use(function (req, res, next){
 			// database : 'revity',
 	try{
 		res.locals.connection = mysql.createConnection({
-			host     : 'localhost',
-			user     : 'root',
-			password : '',
-			database : 'Revity',
+			host     : 'db4free.net',
+			user     : 'creative_joe',
+			password : 'revity.API.007',
+			database : 'revity',
 			multipleStatements: true
 		});
 		res.locals.connection.connect();
