@@ -6,7 +6,7 @@ var router = express.Router();
 
 function create_team(db_con, team_name, company_name, team_members, inviter, all_emails, current_user_email, res_obj) {
 
-	var subject = "Invitation to Team("+team_name+")";
+	var subject = "Revity: Invitation to Team("+team_name+")";
 	var msg = "You where invited to team <b>("+team_name+")</b> by <b>"+inviter+"</b>, kindly use the link below to participate";
 
 		$sendMail(all_emails.toString(), subject, msg);
@@ -94,7 +94,7 @@ function delete_team(db_con, team_name, company, res_obj) {
 
 function add_participant(db_con, team_name, company_name, team_members, inviter, all_emails, res_obj) {
 
-	var subject = "Invitation to Team("+team_name+")";
+	var subject = "Revity: Invitation to Team("+team_name+")";
 	var msg = "You where invited to team <b>("+team_name+")</b> by <b>"+inviter+"</b>, kindly use the link below to participate";
 
 	$sendMail(all_emails.toString(), subject, msg);
@@ -477,6 +477,7 @@ router.get('/:token', function(req, res, next) {
 				else{ res.json({ res: true, message: 'empty', reason: 'No team found' }); }
 
 			});
+			// res.locals.connection.end();
 	}
 });
 
@@ -705,7 +706,7 @@ router.delete('/:token', function(req, res, next) {
 });
 
 
-/* get list of users in a team. */
+/* Leave  team. */
 router.delete('/leave/:token', function(req, res, next) {
 
 	var token_decoded = $jwt.verify(req.params.token, res.locals.key);//get all details of current logged user
@@ -727,7 +728,7 @@ router.delete('/leave/:token', function(req, res, next) {
 
 						      else if (result.length > 0) {
 
-								var sql = "DELETE FROM Team_mates WHERE email = ? AND team_name = ? AND company_for = ?";
+								var sql = "DELETE FROM Team_mates WHERE email = ? AND team_name = ? AND company_for = ?; ";
 								res.locals.connection.query(sql, [token_decoded.email, team_name, token_decoded.company], function (err, result) {
 
 									if (err) {res.json({ res: false, message: "error", reason: err });}

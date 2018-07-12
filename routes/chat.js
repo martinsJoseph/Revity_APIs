@@ -176,7 +176,7 @@ router.post('/send/:team/:token', function(req, res, next) {
 /* send message to an individual. */
 router.post('/send/:token', function(req, res, next) {
 
-	console.log("ssos: "+req.io.emit);
+	// console.log("ssos: "+req.io.emit);
 
 	var token_decoded = $jwt.verify(req.params.token, res.locals.key);//get all details of current logged user
 
@@ -282,6 +282,7 @@ router.delete('/:token', function(req, res, next) {
 	var token_decoded = $jwt.verify(req.params.token, res.locals.key);//get all details of current logged user
 
 	var msg_id = req.body.msg_id || null;
+	console.log("msg: "+msg_id)
 
 	if (token_decoded == false) res.json({res: false, message: 'invalid_token', reason: 'Invalid token'});
 
@@ -373,6 +374,7 @@ router.get('/:token', function(req, res, next) {
 
 						  }
 					});
+					// res.locals.connection.end();
 
 			}
     

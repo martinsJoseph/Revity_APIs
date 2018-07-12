@@ -88,11 +88,18 @@ router.post('/create/admin', function(req, res, next) {
 
 						var today = new Date();//generate date of registeration
 						//prepare sql statement
+						var otp = generate_otp();
 						var sql = " INSERT INTO User (fullname, email, password, company, role, otp, account_activated) VALUES (?) "
-						var values = [(firstname+" "+lastname), email, hash, company, 'admin', (generate_otp()), false]
+						var values = [(firstname+" "+lastname), email, hash, company, 'admin', (otp), false]
 
 						//insert into db
 						res.locals.connection.query(sql, [values] , function (err, result) {
+
+							//prepare mail to send
+							var subject = "Revity: Confirm your Revity account";
+							var msg = "Thanks for registering with Revity, and we promise to take your projects from start to finish.<br> your account activation code is: <b>"+otp+"</b><br> Cheers,<br>Team Revity.";
+
+							$sendMail(email.toString(), subject, msg);
 
 						    if (err) res.json({ res: false, message: "error", reason: err });
 						    res.json({ res: true, message: "good", reason: "Successfully added" });
@@ -366,9 +373,10 @@ router.post('/create/user', function(req, res, next) {
 
 							bcrypt.hash(password, 5, function(err, hash) {//hash the password
 
+								var otp = generate_otp();
 								//prepare sql statement
 								var sql = " INSERT INTO User (fullname, email, password, company, role, otp, account_activated) VALUES (?) "
-								var values = [(firstname+" "+lastname), email, hash, company, 'user', (generate_otp()), false]
+								var values = [(firstname+" "+lastname), email, hash, company, 'user', (otp), false]
 
 								//insert into db
 								res.locals.connection.query(sql, [values] , function (err, result) {
@@ -376,10 +384,12 @@ router.post('/create/user', function(req, res, next) {
 								    if (err) res.json({ res: false, message: "error", reason: err });
 								    else{
 
-										var subject = "Welcome to Revity";
-										var msg = "Your account has been successfully created, welcome on board.\n To activate your account, kindly click on the link below";
+										//prepare mail to send
+										var subject = "Revity: Confirm your Revity account";
+										var msg = "Thanks for registering with Revity, and we promise to take your projects from start to finish.<br> your account activation code is: <b>"+otp+"</b><br> Cheers,<br>Team Revity.";
 
-										$sendMail(email, subject, msg);
+										$sendMail(email.toString(), subject, msg);
+
 										res.json({ res: true, message: "good", reason: "Successfully added" });
 
 								    }
@@ -416,5 +426,146 @@ router.post('/create/user', function(req, res, next) {
 
 });
 
+
+/*Resend activation code*/
+router.post('/resend', function(req, res, next) {
+  	
+  	try {
+
+		/*------------list of all form data needed on for this api to work------------*/
+
+		var email = req.body.email || null;
+
+		/*--------------------END--------------------*/
+
+		if (validate("email", email) == false || email == null)
+		{
+			res.json({ res: false, message: "invalid_email", reason: "Email is invalid" });
+		}
+
+		else {
+
+			/*
+			* What we do here is check if the email already exist for another User, 
+			* if yes then we return email already in use, else we add to db
+			*/
+
+			  res.locals.connection.query(("SELECT * FROM User WHERE email = ?"), [email], function (err, result, fields) {
+
+			    if (err) res.json({ res: false, message: "error", reason: "SQL error" });
+
+			    /*If: email exist*/
+			    else if(result.length > 0) {
+
+			    	if (result[0].account_activated == false) {
+
+			    		var otp = generate_otp();
+
+						var sql = "UPDATE User SET otp = ? WHERE email = ?";
+						var sql_params = [otp, email]
+						res.locals.connection.query(sql, sql_params, function (err, result) {
+
+							if (err) res.json({ res: false, message: "error", reason: "SQL error" });
+
+							else{
+
+								var subject = "Revity: New Email Activation Code";
+								var msg = "You requested for a new email activation code and here it is: <b>"+otp+"</b><br> Cheers,<br>Team Revity.";
+
+								$sendMail(email.toString(), subject, msg);
+								res.json({ res: true, message: "resent", reason: "OTP Successfully resent" });
+
+							}
+
+						});
+
+			    	}
+			    	else{
+			    		res.json({ res: false, message: "already_activated", reason: "This account has already been activated" });
+			    	}
+
+			    }
+
+			    else
+			    {
+			    	res.json({ res: false, message: "invalid", reason: "Email does not exist" });
+			    }
+
+			  });
+		}
+
+	}
+	catch(err) {
+		console.log(err)
+		res.json({ res: false, message: "error", reason: "Sorry an error occured" });
+		return;
+	}
+
+});
+
+
+/*Confirm Email verification code*/
+router.post('/confirm', function(req, res, next) {
+  	
+  	try {
+
+		/*------------list of all form data needed on for this api to work------------*/
+
+		var code = req.body.code || null;
+
+		/*--------------------END--------------------*/
+
+		if (validate("message", code) == false || code == null)
+		{
+			res.json({ res: false, message: "invalid_code", reason: "Code is invalid" });
+		}
+
+		else {
+
+			/*
+			* What we do here is check if the email already exist for another User, 
+			* if yes then we return email already in use, else we add to db
+			*/
+
+			  res.locals.connection.query(("SELECT * FROM User WHERE otp = ? AND account_activated = ?"), [code, false], function (err, result, fields) {
+
+			    if (err) res.json({ res: false, message: "error", reason: "SQL error" });
+
+			    /*If: email exist*/
+			    else if(result.length > 0) {
+
+						var sql = "UPDATE User SET otp = ?, account_activated = ? WHERE otp = ?";
+						var sql_params = ["", true, code]
+						res.locals.connection.query(sql, sql_params, function (err, result) {
+
+							if (err) res.json({ res: false, message: "error", reason: "SQL error" });
+
+							else{
+
+								res.json({ res: true, message: "confirmed", reason: "OTP Successfully confirmed" });
+
+							}
+
+						});
+
+
+			    }
+
+			    else
+			    {
+			    	res.json({ res: false, message: "invalid", reason: "OTP is incorrect" });
+			    }
+
+			  });
+		}
+
+	}
+	catch(err) {
+		console.log(err)
+		res.json({ res: false, message: "error", reason: "Sorry an error occured" });
+		return;
+	}
+
+});
 
 module.exports = router;

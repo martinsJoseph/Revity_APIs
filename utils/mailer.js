@@ -11,7 +11,7 @@ function sendMail(to,subject,msg) {
         service: 'gmail',
         auth: {
             user: 'ogochukwujoseph@gmail.com', // generated ethereal user
-            pass: 'prison.break' // generated ethereal password
+            pass: 'prison.Break1' // generated ethereal password
         }
     });
 
