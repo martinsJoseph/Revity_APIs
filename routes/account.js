@@ -232,7 +232,7 @@ router.post('/login', function(req, res, next) {
 			* if yes then we return email already in use, else we add to db
 			*/
 
-			  res.locals.connection.query(("SELECT * FROM User WHERE email = ?"), [email, company], function (err, result, fields) {
+			  res.locals.connection.query(("SELECT * FROM User WHERE email = ?"), [email], function (err, result, fields) {
 
 			    if (err) res.json({ res: false, message: "error", reason: "SQL error" });
 
@@ -249,7 +249,7 @@ router.post('/login', function(req, res, next) {
 			    			if (is_valid == true) {
 
 			    				//means both company and email are registered.. and if email is registered under company
-						    	if (result[0].company.toLowerCase() == company.toLowerCase() && result[0].email.toLowerCase() == email.toLowerCase()) {
+						    	if (result[0].company.toLowerCase() == company.toLowerCase() && result[0].email.toLowerCase() == email.toLowerCase() && result[0].account_activated == true) {
 						    		
 						    		//make 24hr timed jwt token and give it data
 									var jwt_token = $jwt.sign(res.locals.key, {company: result[0].company.toLowerCase(), email: result[0].email.toLowerCase(), fullname: result[0].fullname.toLowerCase(), role: result[0].role.toLowerCase(), id_: result[0].id})
@@ -264,6 +264,13 @@ router.post('/login', function(req, res, next) {
 
 						    		//means both company and email are registered to each other
 						    		res.json({ res: false, message: "invalid", reason: "Invalid Company name or Email" });
+
+						    	}
+
+						    	else if (result[0].account_activated == false) {
+
+						    		//means both company and email are registered to each other
+						    		res.json({ res: false, message: "not_activated", reason: "Account not activated" });
 
 						    	}
 
