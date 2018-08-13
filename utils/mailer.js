@@ -16,7 +16,7 @@ function sendMail(to,subject,msg) {
     });
 
     const mailOptions = {
-      from: 'ogochukwujoseph@gmail.com', // sender address
+      from: 'account@revityapp.com', // sender address
       to: [to], // list of receivers
       subject: subject, // Subject line
       html: msg// plain text body

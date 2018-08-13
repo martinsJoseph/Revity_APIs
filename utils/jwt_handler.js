@@ -17,6 +17,12 @@ var $jwt =
 		return jwt.sign({data: data}, key, { expiresIn: '24h' });
 
 	},
+	quick_sign: function(key, data)
+	{
+		console.log("Generating JWT Signature");
+		return jwt.sign({data: data}, key, { expiresIn: '10m' });
+
+	},
 	verify: function(token, key)
 	{
 

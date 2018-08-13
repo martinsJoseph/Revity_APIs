@@ -11,13 +11,14 @@ var teamRouter = require('./routes/teams');
 var projectRouter = require('./routes/project');
 var taskRouter = require('./routes/task');
 var chatRouter = require('./routes/chat');
+var fileRouter = require('./routes/file');
 
 var app = express();
 var io = require('socket.io').listen(app.listen(7000));
 
 app.use(logger('dev'));
-app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json({limit:'2MB'}));
+app.use(bodyParser.urlencoded({ extended: true, limit:'2MB', parameterLimit: 1000000000000000000000000 }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('json spaces', 5);
@@ -44,10 +45,10 @@ app.use(function (req, res, next){
 			// database : 'revity',
 	try{
 		res.locals.connection = mysql.createConnection({
-			host     : 'db4free.net',
-			user     : 'creative_joe',
-			password : 'revity.API.007',
-			database : 'revity',
+			host     : 'localhost',
+			user     : 'root',
+			password : '',
+			database : 'Revity',
 			multipleStatements: true
 		});
 		res.locals.connection.connect();
@@ -64,7 +65,8 @@ res.setHeader('Access-Control-Allow-Origin', '*');
 res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
 res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 res.setHeader('Access-Control-Allow-Credentials', true);
-res.locals.key = 'DJJJJJ:@D@MKdni2j9rd02q;sd@KD(@$D:efc/o/@(ue92E@D:@FD"@QDF@"ED(UD@D(J@DRcvrhwj@ue2e09d209edajdxwijadcdscisc'
+res.locals.key = 'DJJJJJ:@D@MKdni2j9rd02q;sd@KD(@$D:efc/o/@(ue92E@D:@FD"@QDF@"ED(UD@D(J@DRcvrhwj@ue2e09d209edajdxwijadcdscisc';
+res.locals.passkey = '$@RM#TFKMFGMGMM%ZMGmX@>D<2,,@me32mr56;u867y'
 next();
 });
 
@@ -73,6 +75,7 @@ app.use('/team', teamRouter);
 app.use('/project', projectRouter);
 app.use('/task', taskRouter);
 app.use('/chat', chatRouter);
+app.use('/file', fileRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

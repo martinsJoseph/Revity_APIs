@@ -7,12 +7,13 @@ var router = express.Router();
 function create_team(db_con, team_name, company_name, team_members, inviter, all_emails, current_user_email, res_obj) {
 
 	var subject = "Revity: Invitation to Team("+team_name+")";
-	var msg = "You where invited to team <b>("+team_name+")</b> by <b>"+inviter+"</b>, kindly use the link below to participate";
+	var msg = "You where invited to team <b>("+team_name+")</b> by <b>"+inviter+"</b> to join click the link below <br> <a href='http://revityapp.com/verifyEmail?company= "+company_name+"'>Join </a> <br> If you already a user, then just login to join the team, but if you are not, then use the link above to create an account.";
 
 		$sendMail(all_emails.toString(), subject, msg);
+		var msgDate = (new Date().toISOString().slice(0, 19).replace('T', ' '));
 		// lets create team
-	    var sql = "INSERT INTO Teams (team_name, company_for) VALUES (?,?); INSERT INTO Team_mates (email, role, team_name, company_for) VALUES (?,?,?,?);";
-	    db_con.query(sql, [team_name, company_name, current_user_email, 'Admin', team_name, company_name], function (err, result) {
+	    var sql = "INSERT INTO Teams (team_name, company_for, date_of_creation) VALUES (?,?,?); INSERT INTO Team_mates (email, role, team_name, company_for) VALUES (?,?,?,?);";
+	    db_con.query(sql, [team_name, company_name, msgDate, current_user_email, 'Admin', team_name, company_name], function (err, result) {
 
 	      if (err) {res_obj.json({ res: false, message: "error", reason: err });}
 	  	    
@@ -155,93 +156,105 @@ router.post('/create/:token', function(req, res, next) {
 	else {
 
 		/*------------list of all form data needed on for this api to work------------*/
+		try{
 
-		var team_name = req.body.team_name || null;
-		var participants = eval(req.body.participants) || null;
+			var team_name = req.body.team_name || null;
+			var participants = JSON.parse("["+req.body.participants+"]") || null;
 
-		/*--------------------END--------------------*/
+			console.log("part: "+participants)
+			console.log(typeof(participants));
+			/*--------------------END--------------------*/
 
 
-		//lets check if user has admin permission to create a new team
-		if (token_decoded.role != 'admin' ) res.json({res: false, message: 'invalid_account_type', reason: 'This user does not have admin right on this company'});
+			//lets check if user has admin permission to create a new team
+			if (token_decoded.role != 'admin' ) res.json({res: false, message: 'invalid_account_type', reason: 'This user does not have admin right on this company'});
 
-		else {
+			else {
 
-			//now what we do is quite simple, we basically verify all participant has a role and a valid email
-			if (validate('name', team_name) == false || team_name == null) 
-			{
-				res.json({ res: false, message: 'invalid_teamname', reason: 'Team name is invalid' });
-			}
-			else if (validate('participant', participants) == false || participants == null) 
-			{
-				res.json({ res: false, message: 'invalid_participant', reason: 'A participant\'s failed data verification' });
-			}
-			else
-			{
-				
-				  var sql = "";
-				  var all_emails = []
+				//now what we do is quite simple, we basically verify all participant has a role and a valid email
+				if (validate('name', team_name) == false || team_name == null) 
+				{
+					res.json({ res: false, message: 'invalid_teamname', reason: 'Team name is invalid' });
+				}
+				else if (validate('participant', participants) == false || participants == null) 
+				{
+					res.json({ res: false, message: 'invalid_participant', reason: 'A participant\'s failed data verification' });
+				}
+				else
+				{
+					
+					  var sql = "";
+					  var all_emails = []
 
-				  for (var i = participants.length - 1; i >= 0; i--) {
+					  for (var i = participants.length - 1; i >= 0; i--) {
 
-				  	//get all emails first so that we can run a search on them all
-				  	console.log(participants[i].email)
-				  	all_emails.push(participants[i].email)
-				  	sql += "SELECT * FROM Team_mates WHERE email = ? AND company_for = '"+token_decoded.company+"' AND team_name = '"+team_name+"'; ";
+					  	//get all emails first so that we can run a search on them all
+					  	console.log(participants[i].email)
+					  	all_emails.push(participants[i].email)
+					  	sql += "SELECT * FROM Team_mates WHERE email = ? AND company_for = '"+token_decoded.company+"' AND team_name = '"+team_name+"'; ";
 
-				  }
+					  }
 
-				    console.log(sql)
-				    console.log(all_emails)
+					    console.log(sql)
+					    console.log(all_emails)
 
-				    res.locals.connection.query("SELECT * FROM Teams WHERE 	team_name = ? AND 	company_for = ?", [team_name, token_decoded.company], function (err, result, fields) {
+					    res.locals.connection.query("SELECT * FROM Teams WHERE 	team_name = ? AND 	company_for = ?", [team_name, token_decoded.company], function (err, result, fields) {
 
-					      if (err) {res.json({ res: false, message: "error", reason: err });}
+						      if (err) {res.json({ res: false, message: "error", reason: err });}
 
-					      else if (result.length > 0) {res.json({ res: false, message: 'team_exist', reason: 'THis team is already registered' });}
+						      else if (result.length > 0) {res.json({ res: false, message: 'team_exist', reason: 'THis team is already registered' });}
 
-					      else{
+						      else{
 
-							  //lets know if email added as a participant already exist
-							  res.locals.connection.query((sql), all_emails, function (err, result, fields) {
-							  	
-						      	if (err) res.json({ res: false, message: "error", reason: err });
-						      	
-						      	else if (result.length > 0) {
+								  //lets know if email added as a participant already exist
+								  res.locals.connection.query((sql), all_emails, function (err, result, fields) {
+								  	
+							      	if (err) res.json({ res: false, message: "error", reason: err });
+							      	
+							      	else if (result.length > 0) {
 
-						      		already_existing_emails = [];
-						      		//this variable is to know if an array returned in the result variable
-						      		// does not contain empty arrays.. because the email actually didn't 
-						      		//exist in the db_con
-						      		var already_has_data = false;
+							      		already_existing_emails = [];
+							      		//this variable is to know if an array returned in the result variable
+							      		// does not contain empty arrays.. because the email actually didn't 
+							      		//exist in the db_con
+							      		var already_has_data = false;
 
-							      	for (var i = result.length - 1; i >= 0; i--) {
-							      		//check if array is empty or containing a tru database value
-							      		if (result[i].length > 0) {
-							      			already_has_data = true;
-								      		already_existing_emails.push(result[i][0].email);
-							      		}
+								      	for (var i = result.length - 1; i >= 0; i--) {
+								      		//check if array is empty or containing a tru database value
+								      		if (result[i].length > 0) {
+								      			if (result[i][0].email != token_decoded.email) {
+
+									      			already_has_data = true;
+										      		already_existing_emails.push(result[i][0].email);
+
+										      	}
+								      		}
+								      	}
+
+								      	if (already_has_data == true) {res.json({ res: false, message: "email_exist", data: already_existing_emails, reason: "Some emails here already exist" }); return;}
+							      		else{
+							      			// console.log(all_emails.toString())
+							      			create_team(res.locals.connection, team_name, token_decoded.company, participants, token_decoded.fullname, all_emails, token_decoded.email, res)
+								      		console.log("naa")
+								      	}
+
 							      	}
 
-							      	if (already_has_data == true) {res.json({ res: false, message: "email_exist", data: already_existing_emails, reason: "Some emails here already exist" }); return;}
-						      		else{
-						      			// console.log(all_emails.toString())
-						      			create_team(res.locals.connection, team_name, token_decoded.company, participants, token_decoded.fullname, all_emails, token_decoded.email, res)
-							      		console.log("naa")
+							      	else{
+								      	create_team(res.locals.connection, team_name, token_decoded.company, participants, token_decoded.fullname, all_emails, token_decoded.email, res)
+								      	console.log("dupp")
 							      	}
 
-						      	}
+								  });
 
-						      	else{
-							      	create_team(res.locals.connection, team_name, token_decoded.company, participants, token_decoded.fullname, all_emails, token_decoded.email, res)
-							      	console.log("dupp")
-						      	}
-
-							  });
-
-						  }
-					});
+							  }
+						});
+				}
 			}
+		}
+		catch (err) {
+			console.log(err)
+			res.json({ res: false, message: 'invalid_participant', reason: 'A participant\'s failed data verification' });
 		}
 	}
 });
@@ -321,8 +334,13 @@ router.post('/add/participant/:token', function(req, res, next) {
 							      	for (var i = result.length - 1; i >= 0; i--) {
 							      		//check if array is empty or containing a tru database value
 							      		if (result[i].length > 0) {
-							      			already_has_data = true;
-								      		already_existing_emails.push(result[i][0].email);
+								      		if (result[i][0].email != token_decoded.email) {
+
+									      		already_has_data = true;
+										      	already_existing_emails.push(result[i][0].email);
+
+										      }							      			
+										      
 							      		}
 							      	}
 
@@ -577,7 +595,7 @@ router.get('/:team_name/:token', function(req, res, next) {
 
 					      else{
 
-							  res.json({ res: true, message: 'empty', reason: 'No team found' });
+							  res.json({ res: true, message: 'team_empty', reason: 'No team found' });
 
 						  }
 					});
@@ -719,7 +737,7 @@ router.delete('/leave/:token', function(req, res, next) {
 	else {
 
 					/*------------list of all form data needed on for this api to work------------*/
-					if (token_decoded.role == 'admin' ) res.json({res: false, message: 'error', reason: 'An admin can\'t leave a group without deleting it'});
+					if (token_decoded.role == 'admin' ) res.json({res: false, message: 'admin_error', reason: 'An admin can\'t leave a group without deleting it'});
 
 					else{
 					    res.locals.connection.query("SELECT * FROM Team_mates WHERE email = ? AND team_name = ? AND company_for = ?", [token_decoded.email, team_name, token_decoded.company], function (err, result, fields) {
