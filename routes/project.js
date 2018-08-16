@@ -25,7 +25,7 @@ function delete_project(db_con, project_name, team_name, company, res_obj) {
 }
 
 
-/* GET users listing. */
+/* Create Project listing. */
 router.post('/create/:token', function(req, res, next) {
 
 	var token_decoded = $jwt.verify(req.params.token, res.locals.key);//get all details of current logged user

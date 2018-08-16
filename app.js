@@ -17,8 +17,8 @@ var app = express();
 var io = require('socket.io').listen(app.listen(7000));
 
 app.use(logger('dev'));
-app.use(express.json({limit:'2MB'}));
-app.use(bodyParser.urlencoded({ extended: true, limit:'2MB', parameterLimit: 1000000000000000000000000 }));
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('json spaces', 5);

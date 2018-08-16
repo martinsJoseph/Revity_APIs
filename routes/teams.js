@@ -272,7 +272,7 @@ router.post('/add/participant/:token', function(req, res, next) {
 		/*------------list of all form data needed on for this api to work------------*/
 
 		var team_name = req.body.team_name || null;
-		var participants = eval(req.body.participants) || null;
+		var participants = JSON.parse("["+req.body.participants+"]") || null;
 
 		/*--------------------END--------------------*/
 

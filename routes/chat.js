@@ -140,8 +140,8 @@ router.post('/send/:team/:token', function(req, res, next) {
 					  var msg_salt = randomstring.generate(16);
 					  var msgDate = (new Date().toISOString().slice(0, 19).replace('T', ' '));
 
-					  var sql = "INSERT INTO Messages (sender_id, receiver_id, message, is_file, is_Team, team_name, full_date, parent_company, alts, is_seen, reported) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-					  res.locals.connection.query(sql, [token_decoded.id_, 0, ($encryption.encrypt(message, msg_salt)), false, true, team_name, msgDate, token_decoded.company, msg_salt, '', false], function (err, result) {
+					  var sql = "INSERT INTO Messages (sender_id, receiver_id, message, is_file, is_Team, team_name, full_date, parent_company, alts, is_seen, reported, file_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					  res.locals.connection.query(sql, [token_decoded.id_, 0, ($encryption.encrypt(message, msg_salt)), false, true, team_name, msgDate, token_decoded.company, msg_salt, '', false, ''], function (err, result) {
 
 					     if (err) {res.json({ res: false, message: "error", reason: err });}
 					  	  else {
@@ -206,8 +206,8 @@ router.post('/send/:token', function(req, res, next) {
 					  	var msg_salt = randomstring.generate(16);
 					  	var msgDate = (new Date().toISOString().slice(0, 19).replace('T', ' '));
 
-					    var sql = "INSERT INTO Messages (sender_id, receiver_id, message, is_file, is_seen, is_Team, full_date, parent_company, alts, team_name, reported) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-					    res.locals.connection.query(sql, [token_decoded.id_, receiver_id, ($encryption.encrypt(message, msg_salt)), false, false, false, msgDate, token_decoded.company, msg_salt, '', false], function (err, result) {
+					    var sql = "INSERT INTO Messages (sender_id, receiver_id, message, is_file, is_seen, is_Team, full_date, parent_company, alts, team_name, reported, file_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					    res.locals.connection.query(sql, [token_decoded.id_, receiver_id, ($encryption.encrypt(message, msg_salt)), false, false, false, msgDate, token_decoded.company, msg_salt, '', false, ''], function (err, result) {
 
 					      if (err) {res.json({ res: false, message: "error", reason: err });}
 					  	  else {
