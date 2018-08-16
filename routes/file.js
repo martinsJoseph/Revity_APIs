@@ -140,7 +140,7 @@ router.post("/upload/chat/:token", upload.single("message_pic"), (req, res) => {
 
                 	//Upload image and save file part to db
 					   var sql = "INSERT INTO Messages (sender_id, receiver_id, message, is_file, is_seen, is_Team, full_date, parent_company, alts, team_name, reported, file_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-					   res.locals.connection.query(sql, [token_decoded.id_, receiver_id, ($encryption.encrypt(message, msg_salt)), true, false, false, msgDate, token_decoded.company, msg_salt, '', false, img_name], function (err, result) {
+					   res.locals.connection.query(sql, [token_decoded.id_, receiver_id, ($encryption.encrypt(message, msg_salt)), true, false, true, msgDate, token_decoded.company, msg_salt, '', false, img_name], function (err, result) {
 
                   if (err) {res.json({ res: false, message: "error", reason: err }); return;}
 
@@ -152,7 +152,7 @@ router.post("/upload/chat/:token", upload.single("message_pic"), (req, res) => {
 
                       else{
 
-					  	  		var message_Data = {id: result.insertId, sender_id: token_decoded.id_, message: message, is_file: false, team_name: "", full_date: msgDate, fullname: token_decoded.fullname, email: token_decoded.email}
+					  	  		var message_Data = {id: result.insertId, sender_id: token_decoded.id_, message: message, is_file: true, team_name: "", full_date: msgDate, fullname: token_decoded.fullname, email: token_decoded.email, file: img_name}
 
 						  	  	req.io.emit("msg_recv", {recv: receiver_id, msg: message, sender: token_decoded.id_, company: token_decoded.company})
 
@@ -217,4 +217,79 @@ router.post("/upload/chat/:team/:token", upload.single("message_pic"), (req, res
 
     const targetPath = path.join(__dirname, "../uploads/"+img_name);
 
-    if (path.extname(req.file.originalname).toLowerCase() === ".png" || path.extname(req.file.originalname).toLowerCase() === ".jpg" || path.extname(req.file.originalname).toLower
+    if (path.extname(req.file.originalname).toLowerCase() === ".png" || path.extname(req.file.originalname).toLowerCase() === ".jpg" || path.extname(req.file.originalname).toLowerCase() === ".jpeg") {
+
+          //confirm if such team exist
+          res.locals.connection.query("SELECT * FROM Team_mates WHERE team_name = ? AND company_for = ? AND email = ?", [team_name, token_decoded.company, token_decoded.email], function (err, result, fields) {
+
+            if (err) { res.json({ res: false, message: "error", reason: err }); return; }
+
+            else if(result.length > 0) {
+
+					  	var msg_salt = randomstring.generate(16);
+					 	var msgDate = (new Date().toISOString().slice(0, 19).replace('T', ' '));
+
+                	//Upload image and save file part to db
+						var sql = "INSERT INTO Messages (sender_id, receiver_id, message, is_file, is_Team, team_name, full_date, parent_company, alts, is_seen, reported, file_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					   res.locals.connection.query(sql, [token_decoded.id_, 0, ($encryption.encrypt(message, msg_salt)), false, true, team_name, msgDate, token_decoded.company, msg_salt, '', false, img_name], function (err, result) {
+
+                  if (err) {res.json({ res: false, message: "error", reason: err }); return;}
+
+                  else {
+
+                    //save file into database
+                    fs.rename(tempPath, targetPath, err => {
+                      if (err) return handleError(err, res);
+
+                      else{
+
+					  	  		var message_Data = {id: result.insertId, sender_id: token_decoded.id_, message: message, is_file: true, team_name: team_name, full_date: msgDate, fullname: token_decoded.fullname, email: token_decoded.email, file: img_name}
+
+						  	  	req.io.emit("team_msg_recv", {team: team_name, msg: message, sender: token_decoded.id_, company: token_decoded.company})
+						  	  	res.json({ res: true, message: "true", data: message_Data, reason: "Successfully sent message"});
+                        return;
+
+                      }
+
+                    });
+
+                  }
+
+                });
+            }
+
+            else {
+            	console.log(result)
+            	res.json({ res: false, message: 'user_not_exist', reason: 'User does not exist' });
+            }
+
+          });
+
+    } else {
+
+      //if an error occured, then kick the image outta memory
+      fs.unlink(tempPath, err => {
+        if (err) return handleError(err, res);
+
+        res.json({ res: false, message: "invalid", reason: 'Only .png/.jpg/.jpeg files are allowed!' });
+        return;
+
+      });
+
+    }
+  }
+});
+
+//load image from the server
+router.get("/load", (req, res) => {
+
+  const file_name = req.query.file;
+  console.log(file_name)
+    res.sendFile(path.join(__dirname, "../uploads/"+file_name), err => {
+      if (err) {res.json({ res: false, message: "file_not_found", reason: 'This file was not found' }); return;}
+      else { return;}
+    });
+    return;    
+
+})
+module.exports = router;
