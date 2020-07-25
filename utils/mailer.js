@@ -10,13 +10,13 @@ function sendMail(to,subject,msg) {
     var transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-            user: 'ogochukwujoseph@gmail.com', // generated ethereal user
-            pass: 'prison.Break1' // generated ethereal password
+            user: '....', // generated ethereal user
+            pass: '....' // generated ethereal password
         }
     });
 
     const mailOptions = {
-      from: 'account@revityapp.com', // sender address
+      from: '...', // sender address
       to: [to], // list of receivers
       subject: subject, // Subject line
       html: msg// plain text body
