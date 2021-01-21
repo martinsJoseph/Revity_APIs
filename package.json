@@ -33,6 +33,6 @@
     "randomstring": "^1.1.5",
     "sequelize": "^4.38.0",
     "sequelize-cli": "^2.8.0",
-    "socket.io": "^2.1.1"
+    "socket.io": "^2.4.0"
   }
 }
